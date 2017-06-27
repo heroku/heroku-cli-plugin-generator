@@ -247,13 +247,13 @@ export default class PluginGenerate extends Command {
     }
 
     const exec = (cmd, args = []) => {
-      this.out.log(`running ${cmd} ${args.join(' ')}`)
+      this.out.log(`Running ${cmd} ${args.join(' ')}`)
       return execa(cmd, args, {stdio: 'inherit'})
     }
     await exec('git', ['init'])
     await exec('yarn')
     await exec('flow-typed', ['install'])
     await exec('yarn', ['test'])
-    this.out.log(`plugin generated. Link with ${this.out.color.cmd('heroku plugins:link ' + name)}`)
+    this.out.log(`Plugin generated. Link with ${this.out.color.cmd('heroku plugins:link ' + name)}`)
   }
 }
