@@ -86,7 +86,7 @@ node_modules\n`
       body: `// @flow
 import Command, {flags} from 'cli-engine-command'
 
-export default class Status extends Command {
+export default class HelloWorld extends Command {
   static topic = 'hello'
   static command = 'world'
   static description = 'say hi'
