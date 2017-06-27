@@ -84,7 +84,7 @@ node_modules\n`
       type: 'plain',
       path: 'src/commands/hello.js',
       body: `// @flow
-import Command, {flags} from 'cli-engine-command'
+import {Command, flags} from 'cli-engine-heroku'
 
 export default class HelloWorld extends Command {
   static topic = 'hello'
