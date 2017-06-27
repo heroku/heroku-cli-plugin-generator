@@ -174,6 +174,24 @@ unsafe.enable_getters_and_setters=true
     },
     {
       type: 'plain',
+      path: 'circle.yml',
+      body: `---
+version: 2
+jobs:
+  build:
+    docker:
+      - image: dickeyxxx/cli-engine-docker:v1.3.0
+    working_directory: ~/cli-plugin
+    steps:
+      - checkout
+      - run: yarn
+      - run: jest && bash <(curl -s https://codecov.io/bash)
+      - run: flow check
+      - run: eslint .
+`
+    },
+    {
+      type: 'plain',
       path: 'appveyor.yml',
       body: `// @flow
 
