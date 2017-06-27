@@ -60,10 +60,10 @@ function files ({name}: {name: string}): File[] {
       type: 'json',
       path: '.babelrc',
       body: {
-        presets: ["flow"],
+        presets: ['flow'],
         plugins: [
-          "transform-es2015-modules-commonjs",
-          "transform-class-properties"
+          'transform-es2015-modules-commonjs',
+          'transform-class-properties'
         ]
       }
     },
@@ -144,16 +144,16 @@ export const commands = fs.readdirSync(dir)
       path: '.eslintrc',
       body: {
         extends: [
-          "plugin:flowtype/recommended",
-          "plugin:jest/recommended",
-          "standard"
+          'plugin:flowtype/recommended',
+          'plugin:jest/recommended',
+          'standard'
         ],
         env: {
           jest: true
         },
         plugins: [
-          "flowtype",
-          "jest"
+          'flowtype',
+          'jest'
         ]
       }
     },
@@ -170,7 +170,7 @@ export const commands = fs.readdirSync(dir)
 
 [options]
 unsafe.enable_getters_and_setters=true
-`,
+`
     },
     {
       type: 'plain',
