@@ -87,8 +87,9 @@ node_modules\n`
 import Command, {flags} from 'cli-engine-command'
 
 export default class Status extends Command {
-  static topic = 'status'
-  static description = 'display current status of Heroku platform'
+  static topic = 'hello'
+  static command = 'world'
+  static description = 'say hi'
   static flags = {
     name: flags.string({description: 'name to say hello to'})
   }
@@ -97,21 +98,98 @@ export default class Status extends Command {
     let name = this.flags.name || 'world'
     this.out.log(\`hello \${name}!\`)
   }
-}\n`
+}
+`
+    },
+    {
+      type: 'plain',
+      path: 'src/commands/hello.test.js',
+      body: `// @flow
+
+import Hello from './hello'
+
+test('it says hello to the world', async () => {
+  let cmd = await Hello.mock()
+  expect(cmd.out.stdout.output).toEqual('hello world!\\n')
+})
+
+test('it says hello to jeff', async () => {
+  let cmd = await Hello.mock('--name', 'jeff')
+  expect(cmd.out.stdout.output).toEqual('hello jeff!\\n')
+})
+`
     },
     {
       type: 'plain',
       path: 'src/index.js',
       body: `// @flow
 
+import fs from 'fs-extra'
+import path from 'path'
+
 export const topic = {
-  name: 'status',
-  description: 'status of the Heroku platform'
+  name: 'hello',
+  description: 'says hello (example plugin)'
 }
 
-export const commands = [
-  require('./commands/status')
-]\n`
+let dir = path.join(__dirname, 'commands')
+export const commands = fs.readdirSync(dir)
+  .filter(f => path.extname(f) === '.js')
+  // $FlowFixMe
+  .map(f => require('./commands/' + f).default)
+`
+    },
+    {
+      type: 'json',
+      path: '.eslintrc',
+      body: {
+        extends: [
+          "plugin:flowtype/recommended",
+          "plugin:jest/recommended",
+          "standard"
+        ],
+        env: {
+          jest: true
+        },
+        plugins: [
+          "flowtype",
+          "jest"
+        ]
+      }
+    },
+    {
+      type: 'plain',
+      path: '.flowconfig',
+      body: `[ignore]
+<PROJECT_ROOT>/lib/.*
+.*/node_modules/nock.*
+
+[include]
+
+[libs]
+
+[options]
+unsafe.enable_getters_and_setters=true
+`,
+    },
+    {
+      type: 'plain',
+      path: 'appveyor.yml',
+      body: `// @flow
+
+environment:
+  nodejs_version: "8"
+cache:
+ - "%LOCALAPPDATA%\\Yarn"
+
+install:
+  - ps: Install-Product node $env:nodejs_version x64
+  - yarn
+test_script:
+  - ./node_modules/.bin/jest
+
+build: off
+`
     }
   ]
 }
@@ -139,6 +217,7 @@ export default class PluginGenerate extends Command {
     process.chdir(d)
 
     for (let file of files({name})) {
+      this.out.log(`Writing ${file.type} file: ${file.path}`)
       switch (file.type) {
         case 'json':
           await fs.outputJSON(file.path, file.body, {spaces: 2})
@@ -149,8 +228,14 @@ export default class PluginGenerate extends Command {
       }
     }
 
-    const exec = (cmd, args) => execa(cmd, args, {stdio: 'inherit'})
+    const exec = (cmd, args = []) => {
+      this.out.log(`running ${cmd} ${args.join(' ')}`)
+      return execa(cmd, args, {stdio: 'inherit'})
+    }
+    await exec('git', ['init'])
     await exec('yarn')
     await exec('flow-typed', ['install'])
+    await exec('yarn', ['test'])
+    this.out.log(`plugin generated. Link with ${this.out.color.cmd('heroku plugins:link ' + name)}`)
   }
 }
