@@ -1,0 +1,156 @@
+// @flow
+
+import Command from 'cli-engine-command'
+import path from 'path'
+import fs from 'fs-extra'
+import execa from 'execa'
+
+type File = {
+  path: string,
+  type: 'json' | 'plain',
+  body: any
+}
+
+function files ({name}: {name: string}): File[] {
+  return [
+    {
+      type: 'json',
+      path: 'package.json',
+      body: {
+        name,
+        version: '0.0.0',
+        files: ['lib'],
+        keywords: ['heroku-plugin'],
+        license: 'ISC',
+        main: 'lib/index.js',
+        scripts: {
+          build: "babel src -d lib --ignore '*.test.js'",
+          clean: 'rimraf lib',
+          prepare: 'npm run clean && npm run build',
+          test: 'jest && flow && eslint .',
+          release: 'np'
+        },
+        dependencies: {
+          'cli-engine-command': '^5.1.7',
+          'cli-engine-config': '^1.3.7',
+          'cli-engine-heroku': '^1.1.1'
+        },
+        devDependencies: {
+          'babel-cli': '^6.24.1',
+          'babel-eslint': '^7.2.3',
+          'babel-preset-flow': '^6.23.0',
+          'babel-plugin-transform-class-properties': '^6.24.1',
+          'babel-plugin-transform-es2015-modules-commonjs': '^6.24.1',
+          'eslint': '^4.0.0',
+          'eslint-config-standard': '^10.2.1',
+          'eslint-plugin-flowtype': '^2.34.0',
+          'eslint-plugin-import': '^2.5.0',
+          'eslint-plugin-jest': '^20.0.3',
+          'eslint-plugin-node': '^5.0.0',
+          'eslint-plugin-promise': '^3.5.0',
+          'eslint-plugin-standard': '^3.0.1',
+          'flow-bin': '^0.48.0',
+          'flow-typed': '^2.1.2',
+          'jest': '^20.0.4',
+          'rimraf': '^2.6.1'
+        }
+      }
+    },
+    {
+      type: 'json',
+      path: '.babelrc',
+      body: {
+        presets: ["flow"],
+        plugins: [
+          "transform-es2015-modules-commonjs",
+          "transform-class-properties"
+        ]
+      }
+    },
+    {
+      type: 'plain',
+      path: '.eslintignore',
+      body: `coverage
+flow-typed
+lib\n`
+    },
+    {
+      type: 'plain',
+      path: '.gitignore',
+      body: `lib
+node_modules\n`
+    },
+    {
+      type: 'plain',
+      path: 'src/commands/hello.js',
+      body: `// @flow
+import Command, {flags} from 'cli-engine-command'
+
+export default class Status extends Command {
+  static topic = 'status'
+  static description = 'display current status of Heroku platform'
+  static flags = {
+    name: flags.string({description: 'name to say hello to'})
+  }
+
+  async run () {
+    let name = this.flags.name || 'world'
+    this.out.log(\`hello \${name}!\`)
+  }
+}\n`
+    },
+    {
+      type: 'plain',
+      path: 'src/index.js',
+      body: `// @flow
+
+export const topic = {
+  name: 'status',
+  description: 'status of the Heroku platform'
+}
+
+export const commands = [
+  require('./commands/status')
+]\n`
+    }
+  ]
+}
+
+export default class PluginGenerate extends Command {
+  static topic = 'plugins'
+  static command = 'generate'
+  static description = 'generate a plugin'
+  static help = `
+  Example:
+    $ heroku plugins:generate heroku-cli-status
+`
+
+  static args = [
+    {name: 'name', description: 'name of plugin'}
+  ]
+
+  async run () {
+    const d = path.resolve(this.args.name)
+    const name = path.basename(d)
+
+    this.out.log(`Building plugin ${name} at ${d}`)
+    if (await fs.exists(d)) throw new Error(`${d} already exists`)
+    await fs.mkdirp(d)
+    process.chdir(d)
+
+    for (let file of files({name})) {
+      switch (file.type) {
+        case 'json':
+          await fs.outputJSON(file.path, file.body, {spaces: 2})
+          break
+        default:
+          await fs.outputFile(file.path, file.body)
+          break
+      }
+    }
+
+    const exec = (cmd, args) => execa(cmd, args, {stdio: 'inherit'})
+    await exec('yarn')
+    await exec('flow-typed', ['install'])
+  }
+}
