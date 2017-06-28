@@ -196,7 +196,7 @@ jobs:
       body: `environment:
   nodejs_version: "8"
 cache:
-  - "%LOCALAPPDATA%\\Yarn"
+  - "%LOCALAPPDATA%\\\\Yarn"
 
 install:
   - ps: Install-Product node $env:nodejs_version x64
