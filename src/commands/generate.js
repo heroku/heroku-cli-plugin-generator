@@ -185,7 +185,7 @@ jobs:
     steps:
       - checkout
       - run: yarn
-      - run: jest && bash <(curl -s https://codecov.io/bash)
+      - run: jest --coverage && bash <(curl -s https://codecov.io/bash)
       - run: flow check
       - run: eslint .
 `
@@ -193,12 +193,10 @@ jobs:
     {
       type: 'plain',
       path: 'appveyor.yml',
-      body: `// @flow
-
-environment:
+      body: `environment:
   nodejs_version: "8"
 cache:
- - "%LOCALAPPDATA%\\Yarn"
+  - "%LOCALAPPDATA%\\Yarn"
 
 install:
   - ps: Install-Product node $env:nodejs_version x64
