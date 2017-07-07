@@ -174,13 +174,13 @@ unsafe.enable_getters_and_setters=true
     },
     {
       type: 'plain',
-      path: 'circle.yml',
+      path: '.circleci/config.yml',
       body: `---
 version: 2
 jobs:
   build:
     docker:
-      - image: dickeyxxx/cli-engine-docker:v1.3.0
+      - image: dickeyxxx/cli-engine-docker:v1.3.1
     working_directory: ~/cli-plugin
     steps:
       - checkout
