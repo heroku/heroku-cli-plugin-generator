@@ -193,7 +193,8 @@ jobs:
     {
       type: 'plain',
       path: 'appveyor.yml',
-      body: `environment:
+      body: `---
+environment:
   nodejs_version: "8"
 cache:
   - "%LOCALAPPDATA%\\\\Yarn"
@@ -204,7 +205,7 @@ install:
 test_script:
   - ./node_modules/.bin/jest
 
-build: off
+build: 'off'
 `
     }
   ]
