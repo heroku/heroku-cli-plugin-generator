@@ -184,10 +184,19 @@ jobs:
     working_directory: ~/cli-plugin
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - node-modules-{{ checksum "yarn.lock" }}
+            - node-modules-
       - run: yarn
       - run: jest --coverage && bash <(curl -s https://codecov.io/bash)
       - run: flow check
       - run: eslint .
+      - save_cache:
+          key: node-modules-{{ checksum "yarn.lock" }}
+          paths:
+            - node_modules
+            - /usr/local/share/.cache/yarn
 `
     },
     {
@@ -253,6 +262,7 @@ export default class PluginGenerate extends Command {
     await exec('yarn')
     await exec('flow-typed', ['install'])
     await exec('yarn', ['test'])
+    await exec('yarn', ['clean'])
     await exec('git', ['add', '.'])
     await exec('git', ['commit', '-m', 'init'])
     this.out.log(`Plugin generated. Link with ${this.out.color.cmd('heroku plugins:link ' + name)}`)
