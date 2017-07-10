@@ -262,7 +262,6 @@ export default class PluginGenerate extends Command {
     await exec('yarn')
     await exec('flow-typed', ['install'])
     await exec('yarn', ['test'])
-    await exec('yarn', ['clean'])
     await exec('git', ['add', '.'])
     await exec('git', ['commit', '-m', 'init'])
     this.out.log(`Plugin generated. Link with ${this.out.color.cmd('heroku plugins:link ' + name)}`)
