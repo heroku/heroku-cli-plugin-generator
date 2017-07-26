@@ -180,7 +180,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: dickeyxxx/cli-engine-docker:v2.0.0
+      - image: node:8.2.1
     working_directory: ~/cli-plugin
     steps:
       - checkout
