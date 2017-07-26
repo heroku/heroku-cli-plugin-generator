@@ -27,7 +27,7 @@ function files ({name}: {name: string}): File[] {
           build: "babel src -d lib --ignore '*.test.js'",
           clean: 'rimraf lib',
           prepare: 'npm run clean && npm run build',
-          test: 'jest && flow && eslint .',
+          test: 'flow && eslint . && jest',
           release: 'np'
         },
         dependencies: {
@@ -189,9 +189,7 @@ jobs:
             - node-modules-{{ checksum "yarn.lock" }}
             - node-modules-
       - run: yarn
-      - run: jest --coverage && bash <(curl -s https://codecov.io/bash)
-      - run: flow check
-      - run: eslint .
+      - run: yarn test --coverage && bash <(curl -s https://codecov.io/bash)
       - save_cache:
           key: node-modules-{{ checksum "yarn.lock" }}
           paths:
