@@ -189,7 +189,7 @@ jobs:
             - node-modules-{{ checksum "yarn.lock" }}
             - node-modules-
       - run: yarn
-      - run: yarn test --coverage && bash <(curl -s https://codecov.io/bash)
+      - run: yarn test -- --coverage && bash <(curl -s https://codecov.io/bash)
       - save_cache:
           key: node-modules-{{ checksum "yarn.lock" }}
           paths:
