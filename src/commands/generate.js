@@ -27,7 +27,7 @@ function files ({name}: {name: string}): File[] {
           build: "babel src -d lib --ignore '*.test.js'",
           clean: 'rimraf lib',
           prepare: 'npm run clean && npm run build',
-          test: 'flow && eslint . && jest',
+          test: 'flow check && eslint . && jest',
           release: 'np'
         },
         dependencies: {
