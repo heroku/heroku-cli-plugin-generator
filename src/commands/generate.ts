@@ -23,18 +23,19 @@ function files({ name }: { name: string }): File[] {
         keywords: ['heroku-plugin'],
         license: 'ISC',
         dependencies: {
-          'cli-engine-heroku': 'ts',
+          'cli-engine-heroku': '^6.0.1',
           'cli-ux': '^2.0.5',
         },
         devDependencies: {
           '@types/execa': '^0.8.0',
           '@types/fs-extra': '^5.0.0',
           '@types/lodash.flatten': '^4.4.3',
+          '@types/jest': '^21.1.8',
           '@types/node': '^8.0.58',
           '@types/supports-color': '^3.1.0',
           'del-cli': '^1.1.0',
           husky: '^0.14.3',
-          jest: '^20.0.4',
+          jest: '^21.2.1',
           'lint-staged': '^6.0.0',
           np: '^2.8.1',
           prettier: '^1.9.2',
@@ -76,7 +77,7 @@ export default class HelloWorld extends Command {
 
   async run () {
     let name = this.flags.name || 'world'
-    this.out.log(\`hello \${name}!\`)
+    cli.log(\`hello \${name}!\`)
   }
 }
 `,
@@ -87,13 +88,13 @@ export default class HelloWorld extends Command {
       body: `import HelloWorld from './hello'
 
 test('it says hello to the world', async () => {
-  let cmd = await HelloWorld.mock()
-  expect(cmd.out.stdout.output).toEqual('hello world!\\n')
+  const {stdout} = await HelloWorld.mock()
+  expect(stdout).toEqual('hello world!\\n')
 })
 
 test('it says hello to jeff', async () => {
-  let cmd = await HelloWorld.mock('--name', 'jeff')
-  expect(cmd.out.stdout.output).toEqual('hello jeff!\\n')
+  const {stdout} = await HelloWorld.mock('--name', 'jeff')
+  expect(stdout).toEqual('hello jeff!\\n')
 })
 `,
     },
