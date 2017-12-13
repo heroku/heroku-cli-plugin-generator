@@ -6,6 +6,7 @@
   "bugs": "https://github.com/heroku/heroku-cli-plugin-generator/issues",
   "dependencies": {
     "cli-engine-heroku": "6.0.0-ts.1",
+    "cli-ux": "2.0.5",
     "execa": "0.8.0",
     "fs-extra": "5.0.0",
     "heroku-cli-color": "1.0.1",

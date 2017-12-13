@@ -22,66 +22,49 @@ function files({ name }: { name: string }): File[] {
         files: ['lib'],
         keywords: ['heroku-plugin'],
         license: 'ISC',
-        main: 'lib/index.js',
-        scripts: {
-          build: "babel src -d lib --ignore '*.test.js'",
-          clean: 'rimraf lib',
-          prepare: 'npm run clean && npm run build',
-          test: 'flow check && eslint . && jest',
-          release: 'np',
-        },
         dependencies: {
-          'cli-engine-command': '^5.1.7',
-          'cli-engine-config': '^1.3.7',
-          'cli-engine-heroku': '^1.1.1',
+          'cli-engine-heroku': 'ts',
+          'cli-ux': '^2.0.5',
         },
         devDependencies: {
-          'babel-cli': '^6.24.1',
-          'babel-eslint': '^7.2.3',
-          'babel-preset-flow': '^6.23.0',
-          'babel-plugin-transform-class-properties': '^6.24.1',
-          'babel-plugin-transform-es2015-modules-commonjs': '^6.24.1',
-          eslint: '^4.0.0',
-          'eslint-config-standard': '^10.2.1',
-          'eslint-plugin-flowtype': '^2.34.0',
-          'eslint-plugin-import': '^2.5.0',
-          'eslint-plugin-jest': '^20.0.3',
-          'eslint-plugin-node': '^5.0.0',
-          'eslint-plugin-promise': '^3.5.0',
-          'eslint-plugin-standard': '^3.0.1',
-          'flow-bin': '^0.48.0',
-          'flow-typed': '^2.1.2',
+          '@types/execa': '^0.8.0',
+          '@types/fs-extra': '^5.0.0',
+          '@types/lodash.flatten': '^4.4.3',
+          '@types/node': '^8.0.58',
+          '@types/supports-color': '^3.1.0',
+          'del-cli': '^1.1.0',
+          husky: '^0.14.3',
           jest: '^20.0.4',
-          rimraf: '^2.6.1',
+          'lint-staged': '^6.0.0',
+          np: '^2.8.1',
+          prettier: '^1.9.2',
+          'ts-jest': '^21.2.4',
+          typescript: '^2.6.2',
         },
+        main: 'lib/index.js',
+        scripts: {
+          posttest: "prettier -l 'src/**/*.ts'",
+          precommit: 'lint-staged',
+          prepare: 'del-cli lib && tsc && del-cli "lib/**/*.test.+(d.ts|js)"',
+          pretest: 'tsc',
+          test: 'jest',
+          release: 'np',
+        },
+        types: './lib/index.d.ts',
       },
-    },
-    {
-      type: 'json',
-      path: '.babelrc',
-      body: {
-        presets: ['flow'],
-        plugins: ['transform-es2015-modules-commonjs', 'transform-class-properties'],
-      },
-    },
-    {
-      type: 'plain',
-      path: '.eslintignore',
-      body: `coverage
-flow-typed
-lib\n`,
     },
     {
       type: 'plain',
       path: '.gitignore',
-      body: `lib
-node_modules\n`,
+      body: `/lib
+/node_modules
+`,
     },
     {
       type: 'plain',
-      path: 'src/commands/hello.js',
-      body: `// @flow
-import {Command, flags} from 'cli-engine-heroku'
+      path: 'src/commands/hello/world.ts',
+      body: `import {Command, flags} from 'cli-engine-heroku'
+import { cli } from 'cli-ux'
 
 export default class HelloWorld extends Command {
   static topic = 'hello'
@@ -100,66 +83,33 @@ export default class HelloWorld extends Command {
     },
     {
       type: 'plain',
-      path: 'src/commands/hello.test.js',
-      body: `// @flow
-
-import Hello from './hello'
+      path: 'src/commands/hello/world.test.ts',
+      body: `import HelloWorld from './hello'
 
 test('it says hello to the world', async () => {
-  let cmd = await Hello.mock()
+  let cmd = await HelloWorld.mock()
   expect(cmd.out.stdout.output).toEqual('hello world!\\n')
 })
 
 test('it says hello to jeff', async () => {
-  let cmd = await Hello.mock('--name', 'jeff')
+  let cmd = await HelloWorld.mock('--name', 'jeff')
   expect(cmd.out.stdout.output).toEqual('hello jeff!\\n')
 })
 `,
     },
     {
       type: 'plain',
-      path: 'src/index.js',
-      body: `// @flow
+      path: 'src/index.ts',
+      body: `import * as path from 'path'
+import { getCommands } from 'cli-engine-heroku'
 
-import fs from 'fs-extra'
-import path from 'path'
 
 export const topic = {
   name: 'hello',
   description: 'says hello (example plugin)'
 }
 
-let dir = path.join(__dirname, 'commands')
-export const commands = fs.readdirSync(dir)
-  .filter(f => path.extname(f) === '.js' && !f.endsWith('.test.js'))
-  // $FlowFixMe
-  .map(f => require('./commands/' + f).default)
-`,
-    },
-    {
-      type: 'json',
-      path: '.eslintrc',
-      body: {
-        extends: ['plugin:flowtype/recommended', 'plugin:jest/recommended', 'standard'],
-        env: {
-          jest: true,
-        },
-        plugins: ['flowtype', 'jest'],
-      },
-    },
-    {
-      type: 'plain',
-      path: '.flowconfig',
-      body: `[ignore]
-<PROJECT_ROOT>/lib/.*
-.*/node_modules/nock.*
-
-[include]
-
-[libs]
-
-[options]
-unsafe.enable_getters_and_setters=true
+export const commands = getCommands(path.join(__dirname, 'commands'))
 `,
     },
     {
@@ -170,18 +120,19 @@ version: 2
 jobs:
   build:
     docker:
-      - image: node:8.2.1
+      - image: node:9
     working_directory: ~/cli-plugin
     steps:
       - checkout
       - restore_cache:
           keys:
-            - node-modules-{{ checksum "yarn.lock" }}
-            - node-modules-
+            - yarn-{{ .Branch }}-{{ checksum "yarn.lock" }}
+            - yarn
       - run: yarn
-      - run: yarn test -- --coverage && bash <(curl -s https://codecov.io/bash)
+      - run: yarn test --coverage
+      - run: bash <(curl -s https://codecov.io/bash)
       - save_cache:
-          key: node-modules-{{ checksum "yarn.lock" }}
+          key: yarn-{{ .Branch }}-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
             - /usr/local/share/.cache/yarn
@@ -192,7 +143,7 @@ jobs:
       path: 'appveyor.yml',
       body: `---
 environment:
-  nodejs_version: "8"
+  nodejs_version: "9"
 cache:
   - "%LOCALAPPDATA%\\\\Yarn"
 
@@ -204,6 +155,79 @@ test_script:
 
 build: 'off'
 `,
+    },
+    {
+      type: 'json',
+      path: '.lintstagedrc',
+      body: {
+        '**/*.ts': ['prettier --write', 'git add', 'jest --bail --findRelatedTests'],
+      },
+    },
+    {
+      type: 'plain',
+      path: '.prettierrc',
+      body: `printWidth: 120
+semi: false
+singleQuote: true
+trailingComma: "all"
+`,
+    },
+    {
+      type: 'plain',
+      path: '.editorconfig',
+      body: `root = true
+
+[*]
+indent_style = space
+indent_size = 2
+tab_width = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+`,
+    },
+    {
+      type: 'plain',
+      path: 'jest.config.js',
+      body: `module.exports = {
+  setupTestFrameworkScriptFile: "./test/init.ts",
+  mapCoverage: true,
+  moduleFileExtensions: ['ts', 'js'],
+  testMatch: ['**/*.test.ts'],
+  transform: {
+    '^.+\\.ts$': '<rootDir>/node_modules/ts-jest/preprocessor.js',
+  },
+}
+`,
+    },
+    {
+      type: 'plain',
+      path: 'test/init.ts',
+      body: `import cli from 'cli-ux'
+
+beforeEach(() => {
+  cli.config.mock = true
+})
+`,
+    },
+    {
+      type: 'json',
+      path: 'tsconfig.json',
+      body: {
+        compilerOptions: {
+          strict: true,
+          alwaysStrict: true,
+          module: 'commonjs',
+          outDir: './lib',
+          declaration: true,
+          noUnusedLocals: true,
+          noUnusedParameters: true,
+          target: 'es2017',
+          lib: ['es7'],
+        },
+        include: ['./src/**/*'],
+      },
     },
   ]
 }
