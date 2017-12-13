@@ -51,7 +51,6 @@ function files({ name }: { name: string }): File[] {
           test: 'jest',
           release: 'np',
         },
-        types: './lib/index.d.ts',
       },
     },
     {
@@ -85,7 +84,7 @@ export default class HelloWorld extends Command {
     {
       type: 'plain',
       path: 'src/commands/hello/world.test.ts',
-      body: `import HelloWorld from './hello'
+      body: `import HelloWorld from './world'
 
 test('it says hello to the world', async () => {
   const {stdout} = await HelloWorld.mock()
@@ -221,7 +220,7 @@ beforeEach(() => {
           alwaysStrict: true,
           module: 'commonjs',
           outDir: './lib',
-          declaration: true,
+          declaration: false,
           noUnusedLocals: true,
           noUnusedParameters: true,
           target: 'es2017',
@@ -267,13 +266,19 @@ export default class PluginGenerate extends Command {
       }
     }
 
-    const exec = (cmd: string, args: string[] = []) => {
+    const exec = async (cmd: string, args: string[] = []) => {
       cli.log(`Running ${cmd} ${args.join(' ')}`)
-      return execa(cmd, args, { stdio: 'inherit' })
+      try {
+        await execa(cmd, args, { stdio: 'inherit' })
+      } catch (err) {
+        if (err.code === 'ENOENT') {
+          throw new Error(`${err.message}
+${cmd} is not installed. Install ${cmd} to develop CLI plugins.`)
+        }
+      }
     }
     await exec('git', ['init'])
     await exec('yarn')
-    await exec('flow-typed', ['install'])
     await exec('yarn', ['test'])
     await exec('git', ['add', '.'])
     await exec('git', ['commit', '-m', 'init'])
