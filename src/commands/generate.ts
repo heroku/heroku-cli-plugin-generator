@@ -215,6 +215,8 @@ export default class PluginGenerate extends Command {
   static help = `
   Example:
     $ heroku plugins:generate heroku-cli-status
+    $ heroku plugins:link heroku-cli-status
+    $ heroku hello:world
 `
 
   static args = [{ name: 'name', description: 'name of plugin' }]
