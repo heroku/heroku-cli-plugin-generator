@@ -1,17 +1,17 @@
-// @flow
-
-import Command from 'cli-engine-command'
-import path from 'path'
-import fs from 'fs-extra'
-import execa from 'execa'
+import { Command } from 'cli-engine-command'
+import { cli } from 'cli-ux'
+import { color } from 'heroku-cli-color'
+import * as path from 'path'
+import * as fs from 'fs-extra'
+import * as execa from 'execa'
 
 type File = {
-  path: string,
-  type: 'json' | 'plain',
+  path: string
+  type: 'json' | 'plain'
   body: any
 }
 
-function files ({name}: {name: string}): File[] {
+function files({ name }: { name: string }): File[] {
   return [
     {
       type: 'json',
@@ -28,12 +28,12 @@ function files ({name}: {name: string}): File[] {
           clean: 'rimraf lib',
           prepare: 'npm run clean && npm run build',
           test: 'flow check && eslint . && jest',
-          release: 'np'
+          release: 'np',
         },
         dependencies: {
           'cli-engine-command': '^5.1.7',
           'cli-engine-config': '^1.3.7',
-          'cli-engine-heroku': '^1.1.1'
+          'cli-engine-heroku': '^1.1.1',
         },
         devDependencies: {
           'babel-cli': '^6.24.1',
@@ -41,7 +41,7 @@ function files ({name}: {name: string}): File[] {
           'babel-preset-flow': '^6.23.0',
           'babel-plugin-transform-class-properties': '^6.24.1',
           'babel-plugin-transform-es2015-modules-commonjs': '^6.24.1',
-          'eslint': '^4.0.0',
+          eslint: '^4.0.0',
           'eslint-config-standard': '^10.2.1',
           'eslint-plugin-flowtype': '^2.34.0',
           'eslint-plugin-import': '^2.5.0',
@@ -51,34 +51,31 @@ function files ({name}: {name: string}): File[] {
           'eslint-plugin-standard': '^3.0.1',
           'flow-bin': '^0.48.0',
           'flow-typed': '^2.1.2',
-          'jest': '^20.0.4',
-          'rimraf': '^2.6.1'
-        }
-      }
+          jest: '^20.0.4',
+          rimraf: '^2.6.1',
+        },
+      },
     },
     {
       type: 'json',
       path: '.babelrc',
       body: {
         presets: ['flow'],
-        plugins: [
-          'transform-es2015-modules-commonjs',
-          'transform-class-properties'
-        ]
-      }
+        plugins: ['transform-es2015-modules-commonjs', 'transform-class-properties'],
+      },
     },
     {
       type: 'plain',
       path: '.eslintignore',
       body: `coverage
 flow-typed
-lib\n`
+lib\n`,
     },
     {
       type: 'plain',
       path: '.gitignore',
       body: `lib
-node_modules\n`
+node_modules\n`,
     },
     {
       type: 'plain',
@@ -99,7 +96,7 @@ export default class HelloWorld extends Command {
     this.out.log(\`hello \${name}!\`)
   }
 }
-`
+`,
     },
     {
       type: 'plain',
@@ -117,7 +114,7 @@ test('it says hello to jeff', async () => {
   let cmd = await Hello.mock('--name', 'jeff')
   expect(cmd.out.stdout.output).toEqual('hello jeff!\\n')
 })
-`
+`,
     },
     {
       type: 'plain',
@@ -137,25 +134,18 @@ export const commands = fs.readdirSync(dir)
   .filter(f => path.extname(f) === '.js' && !f.endsWith('.test.js'))
   // $FlowFixMe
   .map(f => require('./commands/' + f).default)
-`
+`,
     },
     {
       type: 'json',
       path: '.eslintrc',
       body: {
-        extends: [
-          'plugin:flowtype/recommended',
-          'plugin:jest/recommended',
-          'standard'
-        ],
+        extends: ['plugin:flowtype/recommended', 'plugin:jest/recommended', 'standard'],
         env: {
-          jest: true
+          jest: true,
         },
-        plugins: [
-          'flowtype',
-          'jest'
-        ]
-      }
+        plugins: ['flowtype', 'jest'],
+      },
     },
     {
       type: 'plain',
@@ -170,7 +160,7 @@ export const commands = fs.readdirSync(dir)
 
 [options]
 unsafe.enable_getters_and_setters=true
-`
+`,
     },
     {
       type: 'plain',
@@ -195,7 +185,7 @@ jobs:
           paths:
             - node_modules
             - /usr/local/share/.cache/yarn
-`
+`,
     },
     {
       type: 'plain',
@@ -213,8 +203,8 @@ test_script:
   - ./node_modules/.bin/jest
 
 build: 'off'
-`
-    }
+`,
+    },
   ]
 }
 
@@ -227,24 +217,22 @@ export default class PluginGenerate extends Command {
     $ heroku plugins:generate heroku-cli-status
 `
 
-  static args = [
-    {name: 'name', description: 'name of plugin'}
-  ]
+  static args = [{ name: 'name', description: 'name of plugin' }]
 
-  async run () {
+  async run() {
     const d = path.resolve(this.args.name)
     const name = path.basename(d)
 
-    this.out.log(`Building plugin ${name} at ${d}`)
-    if (await fs.exists(d)) throw new Error(`${d} already exists`)
+    cli.log(`Building plugin ${name} at ${d}`)
+    if (await (<any>fs).exists(d)) throw new Error(`${d} already exists`)
     await fs.mkdirp(d)
     process.chdir(d)
 
-    for (let file of files({name})) {
-      this.out.log(`Writing ${file.type} file: ${file.path}`)
+    for (let file of files({ name })) {
+      cli.log(`Writing ${file.type} file: ${file.path}`)
       switch (file.type) {
         case 'json':
-          await fs.outputJSON(file.path, file.body, {spaces: 2})
+          await fs.outputJSON(file.path, file.body, { spaces: 2 })
           break
         default:
           await fs.outputFile(file.path, file.body)
@@ -252,9 +240,9 @@ export default class PluginGenerate extends Command {
       }
     }
 
-    const exec = (cmd, args = []) => {
-      this.out.log(`Running ${cmd} ${args.join(' ')}`)
-      return execa(cmd, args, {stdio: 'inherit'})
+    const exec = (cmd: string, args: string[] = []) => {
+      cli.log(`Running ${cmd} ${args.join(' ')}`)
+      return execa(cmd, args, { stdio: 'inherit' })
     }
     await exec('git', ['init'])
     await exec('yarn')
@@ -262,6 +250,6 @@ export default class PluginGenerate extends Command {
     await exec('yarn', ['test'])
     await exec('git', ['add', '.'])
     await exec('git', ['commit', '-m', 'init'])
-    this.out.log(`Plugin generated. Link with ${this.out.color.cmd('heroku plugins:link ' + name)}`)
+    cli.log(`Plugin generated. Link with ${color.cmd('heroku plugins:link ' + name)}`)
   }
 }
