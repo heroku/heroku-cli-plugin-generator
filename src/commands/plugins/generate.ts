@@ -42,7 +42,9 @@ function files({ name }: { name: string }): File[] {
           'ts-jest': '^21.2.4',
           typescript: '^2.6.2',
         },
-        main: 'lib/index.js',
+        'cli-engine': {
+          commandsDir: './lib/commands',
+        },
         scripts: {
           posttest: "prettier -l 'src/**/*.ts'",
           precommit: 'lint-staged',
@@ -95,21 +97,6 @@ test('it says hello to jeff', async () => {
   const {stdout} = await HelloWorld.mock('--name', 'jeff')
   expect(stdout).toEqual('hello jeff!\\n')
 })
-`,
-    },
-    {
-      type: 'plain',
-      path: 'src/index.ts',
-      body: `import * as path from 'path'
-import { getCommands } from 'cli-engine-heroku'
-
-
-export const topic = {
-  name: 'hello',
-  description: 'says hello (example plugin)'
-}
-
-export const commands = getCommands(path.join(__dirname, 'commands'))
 `,
     },
     {
@@ -220,6 +207,7 @@ beforeEach(() => {
           alwaysStrict: true,
           module: 'commonjs',
           outDir: './lib',
+          rootDir: './src',
           declaration: false,
           noUnusedLocals: true,
           noUnusedParameters: true,
@@ -274,11 +262,12 @@ export default class PluginGenerate extends Command {
         if (err.code === 'ENOENT') {
           throw new Error(`${err.message}
 ${cmd} is not installed. Install ${cmd} to develop CLI plugins.`)
-        }
+        } else throw err
       }
     }
     await exec('git', ['init'])
     await exec('yarn')
+    await exec('yarn', ['exec', 'prettier', '--', '--write', 'src/**/*.ts'])
     await exec('yarn', ['test'])
     await exec('git', ['add', '.'])
     await exec('git', ['commit', '-m', 'init'])
