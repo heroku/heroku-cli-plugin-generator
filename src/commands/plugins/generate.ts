@@ -243,7 +243,7 @@ export default class PluginGenerate extends Command {
     process.chdir(d)
 
     for (let file of files({ name })) {
-      cli.log(`Writing ${file.type} file: ${file.path}`)
+      cli.log(`Writing ${color.green(file.type)} file: ${color.yellow(file.path)}`)
       switch (file.type) {
         case 'json':
           await fs.outputJSON(file.path, file.body, { spaces: 2 })
@@ -255,7 +255,7 @@ export default class PluginGenerate extends Command {
     }
 
     const exec = async (cmd: string, args: string[] = []) => {
-      cli.log(`Running ${cmd} ${args.join(' ')}`)
+      cli.log(`Running ${color.cmd(cmd)} ${color.cmd(args.join(' '))}`)
       try {
         await execa(cmd, args, { stdio: 'inherit' })
       } catch (err) {
