@@ -237,7 +237,7 @@ export default class PluginGenerate extends Command {
     const d = path.resolve(this.args.name)
     const name = path.basename(d)
 
-    cli.log(`Building plugin ${name} at ${d}`)
+    cli.log(`Building plugin ${color.green(name)} at ${color.yellow(d)}`)
     if (await (<any>fs).exists(d)) throw new Error(`${d} already exists`)
     await fs.mkdirp(d)
     process.chdir(d)
