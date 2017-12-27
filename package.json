@@ -1,5 +1,5 @@
 {
-  "name": "heroku-cli-plugin-generator",
+  "name": "@heroku-cli/plugin-generator",
   "description": "generate Heroku CLI plugins",
   "version": "2.0.0",
   "author": "Jeff Dickey @jdxcode",
