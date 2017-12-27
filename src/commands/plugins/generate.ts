@@ -1,6 +1,6 @@
-import { Command } from 'cli-engine-command'
+import { Command } from '@cli-engine/command'
 import { cli } from 'cli-ux'
-import { color } from 'heroku-cli-color'
+import { color } from '@heroku-cli/color'
 import * as path from 'path'
 import * as fs from 'fs-extra'
 import * as execa from 'execa'
@@ -23,36 +23,31 @@ function files({ name }: { name: string }): File[] {
         keywords: ['heroku-plugin'],
         license: 'ISC',
         dependencies: {
-          'cli-engine-heroku': '6',
+          '@heroku-cli/command': '7',
           'cli-ux': '2',
           tslib: '1',
         },
         devDependencies: {
-          '@types/execa': '0',
-          '@types/fs-extra': '5',
-          '@types/lodash.flatten': '4',
+          '@cli-engine/util': '1',
           '@types/jest': '21',
           '@types/node': '8',
           '@types/supports-color': '3',
-          'del-cli': '1',
           husky: '0',
-          jest: '21',
-          'lint-staged': '6',
+          jest: '22',
           prettier: '1',
-          'ts-jest': '21',
+          '@heroku-cli/tslint': '1',
+          tslint: '5',
+          'ts-jest': '22',
           typescript: '2',
         },
         'cli-engine': {
-          commandsDir: './lib/commands',
+          commands: './lib/commands',
         },
         scripts: {
-          clean: 'del-cli lib',
-          posttest: "prettier -l 'src/**/*.ts'",
-          precommit: 'lint-staged',
-          prepare: 'tsc',
-          prepublishOnly: 'yarn run clean && yarn run prepare && yarn run prune',
+          posttest: 'cli-engine-util',
+          precommit: 'cli-engine-util',
+          prepare: 'cli-engine-util',
           pretest: 'tsc',
-          prune: 'del-cli "lib/**/*\\.test\\.(d.ts|js)"',
           test: 'jest',
         },
       },
@@ -69,12 +64,10 @@ function files({ name }: { name: string }): File[] {
     {
       type: 'plain',
       path: 'src/commands/hello/world.ts',
-      body: `import {Command, flags} from 'cli-engine-heroku'
+      body: `import {Command, flags} from '@heroku-cli/command'
 import { cli } from 'cli-ux'
 
 export default class HelloWorld extends Command {
-  static topic = 'hello'
-  static command = 'world'
   static description = 'say hi'
   static flags = {
     name: flags.string({description: 'name to say hello to'})
@@ -98,7 +91,7 @@ test('it says hello to the world', async () => {
 })
 
 test('it says hello to jeff', async () => {
-  const {stdout} = await HelloWorld.mock('--name', 'jeff')
+  const {stdout} = await HelloWorld.mock(['--name', 'jeff'])
   expect(stdout).toEqual('hello jeff!\\n')
 })
 `,
@@ -109,24 +102,41 @@ test('it says hello to jeff', async () => {
       body: `---
 version: 2
 jobs:
-  build:
+  node-latest: &test-build
     docker:
-      - image: node:9
-    working_directory: ~/cli-plugin
+      - image: node:latest
+    working_directory: /cli
     steps:
       - checkout
       - restore_cache:
           keys:
-            - yarn-{{ .Branch }}-{{ checksum "yarn.lock" }}
-            - yarn
+            - v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{checksum "yarn.lock"}}
+            - v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-
+            - v0-yarn-{{ .Environment.CIRCLE_JOB }}-master
       - run: yarn
       - run: yarn test --coverage
-      - run: bash <(curl -s https://codecov.io/bash)
+      - run: curl -s https://codecov.io/bash | bash
       - save_cache:
-          key: yarn-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          key: v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{checksum "yarn.lock"}}
           paths:
-            - node_modules
+            - /cli/node_modules
             - /usr/local/share/.cache/yarn
+  node-8:
+    <<: *test-build
+    docker:
+      - image: node:8
+  node-6:
+    <<: *test-build
+    docker:
+      - image: node:6
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - node-latest
+      - node-8
+      - node-6
 `,
     },
     {
@@ -142,17 +152,15 @@ install:
   - ps: Install-Product node $env:nodejs_version x64
   - yarn
 test_script:
-  - ./node_modules/.bin/jest
+  - yarn test
 
 build: 'off'
 `,
     },
     {
       type: 'json',
-      path: '.lintstagedrc',
-      body: {
-        '**/*.ts': ['prettier --write', 'git add', 'jest --bail --findRelatedTests'],
-      },
+      path: 'tslint.json',
+      body: { extends: '@heroku-cli/tslint' },
     },
     {
       type: 'plain',
@@ -182,7 +190,6 @@ insert_final_newline = true
       type: 'plain',
       path: 'jest.config.js',
       body: `module.exports = {
-  setupTestFrameworkScriptFile: "./test/init.ts",
   mapCoverage: true,
   moduleFileExtensions: ['ts', 'js'],
   testMatch: ['**/*.test.ts'],
@@ -193,31 +200,21 @@ insert_final_newline = true
 `,
     },
     {
-      type: 'plain',
-      path: 'test/init.ts',
-      body: `import cli from 'cli-ux'
-
-beforeEach(() => {
-  cli.config.mock = true
-})
-`,
-    },
-    {
       type: 'json',
       path: 'tsconfig.json',
       body: {
         compilerOptions: {
-          strict: true,
           alwaysStrict: true,
-          module: 'commonjs',
-          outDir: './lib',
-          rootDir: './src',
           declaration: false,
+          importHelpers: true,
+          listEmittedFiles: true,
+          module: 'commonjs',
           noUnusedLocals: true,
           noUnusedParameters: true,
-          listEmittedFiles: true,
-          importHelpers: true,
-          target: 'es2017',
+          outDir: './lib',
+          rootDir: './src',
+          strict: true,
+          target: 'es2016',
         },
         include: ['./src/**/*'],
       },
@@ -226,8 +223,6 @@ beforeEach(() => {
 }
 
 export default class PluginGenerate extends Command {
-  static topic = 'plugins'
-  static command = 'generate'
   static description = 'generate a plugin'
   static help = `
   Example:
@@ -276,6 +271,6 @@ ${cmd} is not installed. Install ${cmd} to develop CLI plugins.`)
     await exec('yarn', ['test'])
     await exec('git', ['add', '.'])
     await exec('git', ['commit', '-m', 'init'])
-    cli.log(`Plugin generated. Link with ${color.cmd('heroku plugins:link ' + name)}`)
+    cli.log(`Plugin generated. Link with ${color.cmd('heroku plugins:link ' + this.args.name)}`)
   }
 }

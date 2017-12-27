@@ -7,11 +7,8 @@
     "outDir": "./lib",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "target": "es2017",
-    "lib": [
-      "es7",
-      "es2017.object"
-    ]
+    "importHelpers": true,
+    "target": "es2016"
   },
   "include": [
     "./src/**/*"
