@@ -41,7 +41,8 @@
   "scripts": {
     "posttest": "cli-engine-util",
     "precommit": "cli-engine-util",
-    "prepare": "cli-engine-util"
+    "prepare": "cli-engine-util",
+    "test": "./scripts/test"
   },
   "types": "./lib/index.d.ts"
 }

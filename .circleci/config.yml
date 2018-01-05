@@ -1,0 +1,27 @@
+---
+version: 2
+jobs:
+  test:
+    docker:
+      - image: dickeyxxx/heroku-cli:latest
+    working_directory: /cli
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{checksum "yarn.lock"}}
+            - v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}
+            - v0-yarn-{{ .Environment.CIRCLE_JOB }}-master
+      - run: yarn
+      - run: yarn test
+      - save_cache:
+          key: v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{checksum "yarn.lock"}}
+          paths:
+            - /cli/node_modules
+            - /usr/local/share/.cache/yarn
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test

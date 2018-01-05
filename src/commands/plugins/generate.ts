@@ -4,6 +4,7 @@ import { cli } from 'cli-ux'
 import * as execa from 'execa'
 import * as fs from 'fs-extra'
 import * as path from 'path'
+import _ from 'ts-lodash'
 
 interface File {
   path: string
@@ -11,36 +12,49 @@ interface File {
   body: any
 }
 
-function files({ name }: { name: string }): File[] {
-  return [
+function files({ name, type }: { name: string; type: 'ts' | 'js' }): File[] {
+  const ts = type === 'ts'
+  return _.compact<File>([
     {
       type: 'json',
       path: 'package.json',
       body: {
         name,
         version: '0.0.0',
-        files: ['lib'],
+        files: [ts ? 'lib' : 'src'],
         keywords: ['heroku-plugin'],
         license: 'MIT',
-        dependencies: {
-          '@heroku-cli/command': '^7.0.12',
-          'cli-ux': '^2.0.21',
-          tslib: '^1.8.1',
-        },
-        devDependencies: {
-          '@heroku-cli/tslint': '^1.1.2',
-          '@types/jest': '^22.0.1',
-          '@types/node': '^8.0.58',
-          husky: '^0.14.3',
-          jest: '^22.0.4',
-          np: '^2.18.3',
-          tslint: '^5.8.0',
-          prettier: '^1.9.2',
-          'ts-jest': '^22.0.0',
-          typescript: '^2.6.2',
-        },
+        dependencies: ts
+          ? {
+              '@heroku-cli/command': '^7.0.12',
+              'cli-ux': '^2.0.21',
+              tslib: '^1.8.1',
+            }
+          : {
+              '@heroku-cli/command': '^7.0.12',
+              'cli-ux': '^2.0.21',
+            },
+        devDependencies: ts
+          ? {
+              '@heroku-cli/tslint': '^1.1.2',
+              '@types/jest': '^22.0.1',
+              '@types/node': '^8.0.58',
+              husky: '^0.14.3',
+              jest: '^22.0.4',
+              np: '^2.18.3',
+              tslint: '^5.8.0',
+              prettier: '^1.9.2',
+              'ts-jest': '^22.0.0',
+              typescript: '^2.6.2',
+            }
+          : {
+              husky: '^0.14.3',
+              jest: '^22.0.4',
+              np: '^2.18.3',
+              prettier: '^1.9.2',
+            },
         'cli-engine': {
-          commands: './lib/commands',
+          commands: ts ? './lib/commands' : './src/commands',
         },
         topics: {
           name,
@@ -49,28 +63,35 @@ function files({ name }: { name: string }): File[] {
         engines: {
           node: '>=6.0.0',
         },
-        scripts: {
-          posttest: 'cli-engine-util',
-          precommit: 'cli-engine-util',
-          prepare: 'cli-engine-util',
-          pretest: 'tsc',
-          test: 'jest',
-          release: 'np',
-        },
+        scripts: ts
+          ? {
+              posttest: 'cli-engine-util',
+              precommit: 'cli-engine-util',
+              prepare: 'cli-engine-util',
+              pretest: 'tsc',
+              test: 'jest',
+              release: 'np',
+            }
+          : {
+              posttest: 'cli-engine-util',
+              precommit: 'cli-engine-util',
+              test: 'jest',
+              release: 'np',
+            },
       },
     },
     {
       type: 'plain',
       path: '.gitignore',
-      body: `/coverage
-/lib
+      body: `/coverage${ts ? '\n/lib' : ''}
 /node_modules
 `,
     },
     {
       type: 'plain',
-      path: `src/commands/${name}/${name}.ts`,
-      body: `import {Command, flags} from '@heroku-cli/command'
+      path: `src/commands/${name}/${name}.${type}`,
+      body: ts
+        ? `import {Command, flags} from '@heroku-cli/command'
 import cli from 'cli-ux'
 
 export default class HelloWorld extends Command {
@@ -81,24 +102,53 @@ export default class HelloWorld extends Command {
 
   async run () {
     let name = this.flags.name || 'world'
-    cli.log(\`hello \${name}!\`)
+    cli.log(\`hello \${name} from ${name}!\`)
   }
 }
+`
+        : `const {Command, flags} = require('@heroku-cli/command')
+const {cli} = require('cli-ux')
+
+class HelloWorld extends Command {
+  async run () {
+    let name = this.flags.name || 'world'
+    cli.log(\`hello \${name} from ${name}!\`)
+  }
+}
+HelloWorld.description = 'say hi'
+HelloWorld.flags = {
+  name: flags.string({description: 'name to say hello to'})
+}
+
+module.exports = HelloWorld
 `,
     },
     {
       type: 'plain',
-      path: `src/commands/${name}/${name}.test.ts`,
-      body: `import HelloWorld from './${name}'
+      path: `src/commands/${name}/${name}.test.${type}`,
+      body: ts
+        ? `import HelloWorld from './${name}'
 
 test('it says hello to the world', async () => {
   const {stdout} = await HelloWorld.mock()
-  expect(stdout).toEqual('hello world!\\n')
+  expect(stdout).toEqual('hello world from ${name}!\\n')
 })
 
 test('it says hello to jeff', async () => {
   const {stdout} = await HelloWorld.mock(['--name', 'jeff'])
-  expect(stdout).toEqual('hello jeff!\\n')
+  expect(stdout).toEqual('hello jeff from ${name}!\\n')
+})
+`
+        : `const HelloWorld = require('./${name}')
+
+test('it says hello to the world', async () => {
+  const {stdout} = await HelloWorld.mock()
+  expect(stdout).toEqual('hello world from ${name}!\\n')
+})
+
+test('it says hello to jeff', async () => {
+  const {stdout} = await HelloWorld.mock(['--name', 'jeff'])
+  expect(stdout).toEqual('hello jeff from ${name}!\\n')
 })
 `,
     },
@@ -202,7 +252,8 @@ insert_final_newline = true
     {
       type: 'plain',
       path: 'jest.config.js',
-      body: `module.exports = {
+      body: ts
+        ? `module.exports = {
   setupTestFrameworkScriptFile: "./test/init.ts",
   mapCoverage: true,
   moduleFileExtensions: ['ts', 'js'],
@@ -216,45 +267,53 @@ insert_final_newline = true
     }
   }
 }
+`
+        : `module.exports = {
+  setupTestFrameworkScriptFile: "./test/init.js",
+}
 `,
     },
     {
       type: 'plain',
-      path: 'test/init.ts',
-      body: `import cli from 'cli-ux'
+      path: `test/init.${type}`,
+      body: `${ts ? "import cli from 'cli-ux'" : "const {cli} = require('cli-ux')"}
 
 beforeEach(() => {
   cli.config.mock = true
 })
 `,
     },
-    {
-      type: 'json',
-      path: 'tslint.json',
-      body: {
-        extends: '@heroku-cli/tslint',
-      },
-    },
-    {
-      type: 'json',
-      path: 'tsconfig.json',
-      body: {
-        compilerOptions: {
-          strict: true,
-          alwaysStrict: true,
-          module: 'commonjs',
-          outDir: './lib',
-          rootDir: './src',
-          declaration: false,
-          noUnusedLocals: true,
-          importHelpers: true,
-          noUnusedParameters: true,
-          target: 'es2016',
-        },
-        include: ['./src/**/*'],
-      },
-    },
-  ]
+    ts
+      ? {
+          type: 'json',
+          path: 'tslint.json',
+          body: {
+            extends: '@heroku-cli/tslint',
+          },
+        }
+      : null,
+    ts
+      ? {
+          type: 'json',
+          path: 'tsconfig.json',
+          body: {
+            compilerOptions: {
+              strict: true,
+              alwaysStrict: true,
+              module: 'commonjs',
+              outDir: './lib',
+              rootDir: './src',
+              declaration: false,
+              noUnusedLocals: true,
+              importHelpers: true,
+              noUnusedParameters: true,
+              target: 'es2016',
+            },
+            include: ['./src/**/*'],
+          },
+        }
+      : null,
+  ])
 }
 
 export default class PluginGenerate extends Command {
@@ -280,7 +339,7 @@ export default class PluginGenerate extends Command {
     await fs.mkdirp(d)
     process.chdir(d)
 
-    for (let file of files({ name })) {
+    for (let file of files({ name, type: this.flags.js ? 'js' : 'ts' })) {
       cli.log(`Writing ${file.type} file: ${file.path}`)
       switch (file.type) {
         case 'json':
