@@ -42,7 +42,6 @@ function files({ name, type }: { name: string; type: 'ts' | 'js' }): File[] {
               '@types/node': '^8.0.58',
               husky: '^0.14.3',
               jest: '^22.0.4',
-              np: '^2.18.3',
               tslint: '^5.8.0',
               prettier: '^1.9.2',
               'ts-jest': '^22.0.0',
