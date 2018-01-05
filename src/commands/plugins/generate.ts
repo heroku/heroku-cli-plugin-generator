@@ -57,8 +57,9 @@ function files({ name, type }: { name: string; type: 'ts' | 'js' }): File[] {
         'cli-engine': {
           commands: ts ? './lib/commands' : './src/commands',
           topics: {
-            name,
-            description: 'says hello (example plugin)',
+            [name]: {
+              description: 'says hello (example plugin)',
+            },
           },
         },
         engines: {
