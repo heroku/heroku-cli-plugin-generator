@@ -1,11 +1,11 @@
 import Command, { flags } from '@cli-engine/command'
-import { cli } from 'cli-ux'
 import { color } from '@heroku-cli/color'
-import * as path from 'path'
-import * as fs from 'fs-extra'
+import { cli } from 'cli-ux'
 import * as execa from 'execa'
+import * as fs from 'fs-extra'
+import * as path from 'path'
 
-type File = {
+interface File {
   path: string
   type: 'json' | 'plain'
   body: any
@@ -276,7 +276,7 @@ export default class PluginGenerate extends Command {
     const name = path.basename(d)
 
     cli.log(`Building plugin ${name} at ${d}`)
-    if (await (<any>fs).exists(d)) throw new Error(`${d} already exists`)
+    if (await (fs as any).exists(d)) throw new Error(`${d} already exists`)
     await fs.mkdirp(d)
     process.chdir(d)
 
