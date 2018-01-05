@@ -12,8 +12,8 @@ jobs:
             - v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{checksum "yarn.lock"}}
             - v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}
             - v0-yarn-{{ .Environment.CIRCLE_JOB }}-master
-      - git config --global user.email "cli-engine@example.com"
-      - git config --global user.name "cli-engine"
+      - run: git config --global user.email "cli-engine@example.com"
+      - run: git config --global user.name "cli-engine"
       - run: yarn
       - run: yarn test
       - save_cache:
