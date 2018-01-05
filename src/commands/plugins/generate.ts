@@ -328,10 +328,11 @@ export default class PluginGenerate extends Command {
 
   static args = [{ name: 'name', description: 'name of plugin' }]
   static flags: flags.Input = {
-    js: flags.boolean({ description: 'use plain js style instead of typescript' }),
+    type: flags.string({ description: "[ts|js] specify TypeScript or plain JavaScript plugin. Default is 'ts'." }),
   }
 
   async run() {
+    const type = this.flags.type || 'ts'
     const d = path.resolve(this.args.name)
     const name = path.basename(d)
 
@@ -340,7 +341,7 @@ export default class PluginGenerate extends Command {
     await fs.mkdirp(d)
     process.chdir(d)
 
-    for (let file of files({ name, type: this.flags.js ? 'js' : 'ts' })) {
+    for (let file of files({ name, type })) {
       cli.log(`Writing ${file.type} file: ${file.path}`)
       switch (file.type) {
         case 'json':

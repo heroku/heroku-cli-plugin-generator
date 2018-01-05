@@ -15,7 +15,7 @@ rm -rf my-example-plugin
 
 # test js
 heroku plugins:link -f .
-heroku plugins:generate --js my-example-plugin
+heroku plugins:generate --type js my-example-plugin
 heroku plugins:link -f my-example-plugin
 heroku my-example-plugin:my-example-plugin
 heroku help my-example-plugin
