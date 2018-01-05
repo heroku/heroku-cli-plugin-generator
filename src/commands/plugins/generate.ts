@@ -38,6 +38,7 @@ function files({ name, type }: { name: string; type: 'ts' | 'js' }): File[] {
           ? {
               '@heroku-cli/tslint': '^1.1.2',
               '@types/jest': '^22.0.1',
+              '@types/ansi-styles': '^2.0.30',
               '@types/node': '^8.0.58',
               husky: '^0.14.3',
               jest: '^22.0.4',
