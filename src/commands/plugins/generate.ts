@@ -1,6 +1,6 @@
-import { Command } from 'cli-engine-command'
+import Command, { flags } from '@cli-engine/command'
 import { cli } from 'cli-ux'
-import { color } from 'heroku-cli-color'
+import { color } from '@heroku-cli/color'
 import * as path from 'path'
 import * as fs from 'fs-extra'
 import * as execa from 'execa'
@@ -21,32 +21,38 @@ function files({ name }: { name: string }): File[] {
         version: '0.0.0',
         files: ['lib'],
         keywords: ['heroku-plugin'],
-        license: 'ISC',
+        license: 'MIT',
         dependencies: {
-          'cli-engine-heroku': '^6.0.1',
-          'cli-ux': '^2.0.5',
+          '@heroku-cli/command': '^7.0.12',
+          'cli-ux': '^2.0.21',
+          tslib: '^1.8.1',
         },
         devDependencies: {
-          '@types/execa': '^0.8.0',
-          '@types/fs-extra': '^5.0.0',
-          '@types/lodash.flatten': '^4.4.3',
-          '@types/jest': '^21.1.8',
+          '@heroku-cli/tslint': '^1.1.2',
+          '@types/jest': '^22.0.1',
           '@types/node': '^8.0.58',
-          '@types/supports-color': '^3.1.0',
-          'del-cli': '^1.1.0',
           husky: '^0.14.3',
-          jest: '^21.2.1',
-          'lint-staged': '^6.0.0',
-          np: '^2.8.1',
+          jest: '^22.0.4',
+          np: '^2.18.3',
+          tslint: '^5.8.0',
           prettier: '^1.9.2',
-          'ts-jest': '^21.2.4',
+          'ts-jest': '^22.0.0',
           typescript: '^2.6.2',
         },
-        main: 'lib/index.js',
+        'cli-engine': {
+          commands: './lib/commands',
+        },
+        topics: {
+          name,
+          description: 'says hello (example plugin)',
+        },
+        engines: {
+          node: '>=6.0.0',
+        },
         scripts: {
-          posttest: "prettier -l 'src/**/*.ts'",
-          precommit: 'lint-staged',
-          prepare: 'del-cli lib && tsc && del-cli "lib/**/*.test.+(d.ts|js)"',
+          posttest: 'cli-engine-util',
+          precommit: 'cli-engine-util',
+          prepare: 'cli-engine-util',
           pretest: 'tsc',
           test: 'jest',
           release: 'np',
@@ -56,19 +62,18 @@ function files({ name }: { name: string }): File[] {
     {
       type: 'plain',
       path: '.gitignore',
-      body: `/lib
+      body: `/coverage
+/lib
 /node_modules
 `,
     },
     {
       type: 'plain',
-      path: 'src/commands/hello/world.ts',
-      body: `import {Command, flags} from 'cli-engine-heroku'
-import { cli } from 'cli-ux'
+      path: `src/commands/${name}/${name}.ts`,
+      body: `import {Command, flags} from '@heroku-cli/command'
+import cli from 'cli-ux'
 
 export default class HelloWorld extends Command {
-  static topic = 'hello'
-  static command = 'world'
   static description = 'say hi'
   static flags = {
     name: flags.string({description: 'name to say hello to'})
@@ -83,8 +88,8 @@ export default class HelloWorld extends Command {
     },
     {
       type: 'plain',
-      path: 'src/commands/hello/world.test.ts',
-      body: `import HelloWorld from './world'
+      path: `src/commands/${name}/${name}.test.ts`,
+      body: `import HelloWorld from './${name}'
 
 test('it says hello to the world', async () => {
   const {stdout} = await HelloWorld.mock()
@@ -92,24 +97,9 @@ test('it says hello to the world', async () => {
 })
 
 test('it says hello to jeff', async () => {
-  const {stdout} = await HelloWorld.mock('--name', 'jeff')
+  const {stdout} = await HelloWorld.mock(['--name', 'jeff'])
   expect(stdout).toEqual('hello jeff!\\n')
 })
-`,
-    },
-    {
-      type: 'plain',
-      path: 'src/index.ts',
-      body: `import * as path from 'path'
-import { getCommands } from 'cli-engine-heroku'
-
-
-export const topic = {
-  name: 'hello',
-  description: 'says hello (example plugin)'
-}
-
-export const commands = getCommands(path.join(__dirname, 'commands'))
 `,
     },
     {
@@ -118,50 +108,72 @@ export const commands = getCommands(path.join(__dirname, 'commands'))
       body: `---
 version: 2
 jobs:
-  build:
+  node-latest: &test-build
     docker:
-      - image: node:9
-    working_directory: ~/cli-plugin
+      - image: node:latest
+    working_directory: /cli
     steps:
       - checkout
       - restore_cache:
           keys:
-            - yarn-{{ .Branch }}-{{ checksum "yarn.lock" }}
-            - yarn
+            - v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{checksum "yarn.lock"}}
+            - v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}
+            - v0-yarn-{{ .Environment.CIRCLE_JOB }}-master
       - run: yarn
       - run: yarn test --coverage
-      - run: bash <(curl -s https://codecov.io/bash)
+      - run: curl -s https://codecov.io/bash | bash
       - save_cache:
-          key: yarn-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          key: v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{checksum "yarn.lock"}}
           paths:
-            - node_modules
+            - /cli/node_modules
             - /usr/local/share/.cache/yarn
+  node-8:
+    <<: *test-build
+    docker:
+      - image: node:8
+  node-6:
+    <<: *test-build
+    docker:
+      - image: node:6
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - node-latest
+      - node-8
+      - node-6
 `,
     },
     {
       type: 'plain',
       path: 'appveyor.yml',
       body: `---
+build: off
+version: '{build}'
+shallow_clone: true
+clone_depth: 1
+matrix:
+  fast_finish: true
 environment:
-  nodejs_version: "9"
+  matrix:
+    - nodejs_version: '9'
+    - nodejs_version: '8'
+    - nodejs_version: '6'
 cache:
-  - "%LOCALAPPDATA%\\\\Yarn"
-
+  - '%LOCALAPPDATA%\\Yarn -> appveyor.yml'
+  - node_modules -> package.json
 install:
   - ps: Install-Product node $env:nodejs_version x64
   - yarn
 test_script:
-  - ./node_modules/.bin/jest
-
-build: 'off'
+  - yarn test --coverage
+after_test:
+  - ps: |
+      $env:PATH = 'C:\\msys64\\usr\\bin;' + $env:PATH
+      Invoke-WebRequest -Uri 'https://codecov.io/bash' -OutFile codecov.sh
+      bash codecov.sh
 `,
-    },
-    {
-      type: 'json',
-      path: '.lintstagedrc',
-      body: {
-        '**/*.ts': ['prettier --write', 'git add', 'jest --bail --findRelatedTests'],
-      },
     },
     {
       type: 'plain',
@@ -198,6 +210,11 @@ insert_final_newline = true
   transform: {
     '^.+\\.ts$': '<rootDir>/node_modules/ts-jest/preprocessor.js',
   },
+  globals: {
+    'ts-jest': {
+      skipBabel: true
+    }
+  }
 }
 `,
     },
@@ -213,6 +230,13 @@ beforeEach(() => {
     },
     {
       type: 'json',
+      path: 'tslint.json',
+      body: {
+        extends: '@heroku-cli/tslint',
+      },
+    },
+    {
+      type: 'json',
       path: 'tsconfig.json',
       body: {
         compilerOptions: {
@@ -220,11 +244,12 @@ beforeEach(() => {
           alwaysStrict: true,
           module: 'commonjs',
           outDir: './lib',
+          rootDir: './src',
           declaration: false,
           noUnusedLocals: true,
+          importHelpers: true,
           noUnusedParameters: true,
-          target: 'es2017',
-          lib: ['es7'],
+          target: 'es2016',
         },
         include: ['./src/**/*'],
       },
@@ -233,8 +258,6 @@ beforeEach(() => {
 }
 
 export default class PluginGenerate extends Command {
-  static topic = 'plugins'
-  static command = 'generate'
   static description = 'generate a plugin'
   static help = `
   Example:
@@ -244,6 +267,9 @@ export default class PluginGenerate extends Command {
 `
 
   static args = [{ name: 'name', description: 'name of plugin' }]
+  static flags: flags.Input = {
+    js: flags.boolean({ description: 'use plain js style instead of typescript' }),
+  }
 
   async run() {
     const d = path.resolve(this.args.name)
@@ -274,11 +300,12 @@ export default class PluginGenerate extends Command {
         if (err.code === 'ENOENT') {
           throw new Error(`${err.message}
 ${cmd} is not installed. Install ${cmd} to develop CLI plugins.`)
-        }
+        } else throw err
       }
     }
     await exec('git', ['init'])
     await exec('yarn')
+    await exec('yarn', ['run', 'precommit', '--fix'])
     await exec('yarn', ['test'])
     await exec('git', ['add', '.'])
     await exec('git', ['commit', '-m', 'init'])
