@@ -327,7 +327,7 @@ export default class PluginGenerate extends Command {
     $ heroku hello:world
 `
 
-  static args = [{ name: 'name', description: 'name of plugin' }]
+  static args = [{ name: 'name', description: 'name of plugin', required: true }]
   static flags: flags.Input = {
     type: flags.string({ description: "[ts|js] specify TypeScript or plain JavaScript plugin. Default is 'ts'." }),
   }
