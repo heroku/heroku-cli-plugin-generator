@@ -16,6 +16,7 @@
     "klaw-sync": "3.0.2"
   },
   "devDependencies": {
+    "@cli-engine/util": "^1.0.13",
     "@heroku-cli/tslint": "^1.1.2",
     "@types/ansi-styles": "^2.0.30",
     "@types/execa": "0.8.1",
