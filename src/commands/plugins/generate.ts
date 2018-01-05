@@ -56,10 +56,10 @@ function files({ name, type }: { name: string; type: 'ts' | 'js' }): File[] {
             },
         'cli-engine': {
           commands: ts ? './lib/commands' : './src/commands',
-        },
-        topics: {
-          name,
-          description: 'says hello (example plugin)',
+          topics: {
+            name,
+            description: 'says hello (example plugin)',
+          },
         },
         engines: {
           node: '>=6.0.0',
