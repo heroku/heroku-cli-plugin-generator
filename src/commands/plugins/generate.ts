@@ -300,6 +300,7 @@ beforeEach(() => {
           body: {
             compilerOptions: {
               strict: true,
+              forceConsistentCasingInFileNames: true,
               alwaysStrict: true,
               module: 'commonjs',
               outDir: './lib',
