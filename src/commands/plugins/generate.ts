@@ -172,7 +172,6 @@ jobs:
             - v0-yarn-{{ .Environment.CIRCLE_JOB }}-master
       - run: yarn
       - run: yarn test --coverage
-      - run: curl -s https://codecov.io/bash | bash
       - save_cache:
           key: v0-yarn-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{checksum "yarn.lock"}}
           paths:
@@ -219,11 +218,6 @@ install:
   - yarn
 test_script:
   - yarn test --coverage
-after_test:
-  - ps: |
-      $env:PATH = 'C:\\msys64\\usr\\bin;' + $env:PATH
-      Invoke-WebRequest -Uri 'https://codecov.io/bash' -OutFile codecov.sh
-      bash codecov.sh
 `,
     },
     {
