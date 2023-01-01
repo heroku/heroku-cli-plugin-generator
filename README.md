@@ -6,3 +6,4 @@ Usage:
 $ heroku plugins:install heroku-cli-plugin-generator
 $ heroku plugins:generate my-cli-plugin
 ```
+test
