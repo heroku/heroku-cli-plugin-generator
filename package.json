@@ -9,8 +9,8 @@
   },
   "dependencies": {
     "@heroku-cli/color": "^1.0.4",
-    "@heroku-cli/command": "^7.0.12",
-    "cli-ux": "2.0.21",
+    "@heroku-cli/command": "^9.0.0",
+    "cli-ux": "6.0.9",
     "execa": "0.8.0",
     "fs-extra": "5.0.0",
     "klaw-sync": "3.0.2"
